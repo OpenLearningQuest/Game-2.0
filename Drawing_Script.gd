@@ -1,5 +1,4 @@
 extends CanvasLayer
-
 var drawing = false
 var path = PackedVector2Array()
 
@@ -27,3 +26,5 @@ func draw_path():
 	line.width = 5  # Set your desired line width
 	line.points = path
 	add_child(line)
+
+
