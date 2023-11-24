@@ -7,6 +7,7 @@ var drawing = false
 var path = PackedVector2Array()
 var zoom_speed = 0.1
 var max_zoom_out = 0.5  # Set your desired maximum zoom-out value
+var base_line_width = 5  # Set your desired base line width
 
 func _ready():
 	set_process_input(true)
@@ -49,7 +50,10 @@ func _input(event):
 
 func draw_path():
 	var line = Line2D.new()
-	line.width = 5  # Set your desired line width
+	
+	# Adjust the line width inversely proportional to the scale
+	line.width = base_line_width / sqrt(scale.x * scale.y)
+	
 	line.points = path
 	add_child(line)
 
