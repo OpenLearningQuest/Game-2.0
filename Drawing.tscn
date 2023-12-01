@@ -9,8 +9,11 @@ var zoom_speed = 0.1
 var max_zoom_out = 0.5  # Set your desired maximum zoom-out value
 var base_line_width = 5  # Set your desired base line width
 
+var camera_2d: Camera2D = null
+
 func _ready():
 	set_process_input(true)
+	camera_2d = $Camera2D
 
 func _input(event):
 	if event is InputEventMouseButton:
@@ -18,49 +21,56 @@ func _input(event):
 			drawing = event.pressed
 			if drawing:
 				path.clear()
-				path.append(_get_scaled_mouse_position(event.position))
+				path.append(_get_world_mouse_position(event.position))
 			else:
 				# Finish drawing
-				path.append(_get_scaled_mouse_position(event.position))
+				path.append(_get_world_mouse_position(event.position))
 				draw_path()
 
 	elif event is InputEventMouseMotion and drawing:
-		path.append(_get_scaled_mouse_position(event.position))
+		path.append(_get_world_mouse_position(event.position))
 		draw_path()
+
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
+		# Middle mouse button to pan the camera
+		if event.pressed:
+			camera_2d.set_drag_enabled(true)
+		else:
+			camera_2d.set_drag_enabled(false)
 
 	elif event is InputEventKey:
 		if event.keycode == KEY_I:
 			print(\"Zoom in\")
 			# Zoom in
-			scale *= 1.0 - zoom_speed
+			camera_2d.zoom /= (1.0 - zoom_speed)
 
 		elif event.keycode == KEY_O:
 			print(\"Zoom out\")
-			# Calculate the new scale without applying it
-			var new_scale = scale / (1.0 - zoom_speed)
+			# Zoom out
+			camera_2d.zoom *= 1.0 - zoom_speed
 
-			# Check if the new scale exceeds the maximum zoom-out limit
-			if new_scale.x > max_zoom_out and new_scale.y > max_zoom_out:
-				# Apply the new scale only if it doesn't exceed the limit
-				scale = new_scale
-
-			# Ensure a minimum scale
-			scale.x = max(scale.x, max_zoom_out)
-			scale.y = max(scale.y, max_zoom_out)
+			# Ensure a minimum zoom level
+			camera_2d.zoom = max(camera_2d.zoom, max_zoom_out)
 
 func draw_path():
 	var line = Line2D.new()
-	
-	# Adjust the line width inversely proportional to the scale
-	line.width = base_line_width / sqrt(scale.x * scale.y)
-	
+
+	# Adjust the line width inversely proportional to the camera zoom
+	line.width = base_line_width / camera_2d.zoom
+
 	line.points = path
 	add_child(line)
 
-func _get_scaled_mouse_position(original_position):
-	# Adjust the mouse position based on the scale of the CanvasLayer
-	return original_position / scale
+func _get_world_mouse_position(original_position):
+	# Convert the mouse position to world coordinates using the camera
+	var ray_origin = camera_2d.project_ray_origin(original_position)
+	var ray_direction = camera_2d.project_ray_normal(original_position)
+	var intersection = ray_origin + ray_direction * camera_2d.zfar
+
+	return intersection
 "
 
 [node name="Node2D" type="CanvasLayer"]
 script = SubResource("GDScript_kr0f6")
+
+[node name="Camera2D" type="Camera2D" parent="."]
